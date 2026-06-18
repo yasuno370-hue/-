@@ -97,24 +97,81 @@ const CSS = `:root{
   .btn.copy{background:var(--lantern);color:#241803;border:none}
   .btn.close{background:transparent;color:var(--muted)}
 
-  @media (prefers-reduced-motion:reduce){*{transition:none!important}}`;
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* --- mode switch & shift form --- */
+.modeswitch{display:flex;gap:6px;margin-top:14px;background:var(--surface);padding:4px;border-radius:12px}
+.modebtn{flex:1;background:transparent;border:none;color:var(--muted);font-weight:700;font-size:14px;padding:9px;border-radius:9px;cursor:pointer;transition:.15s}
+.modebtn.active{background:var(--kumokai);color:#08122b}
+.form{margin:0 0 36px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:700}
+.field .req{color:var(--kumokai-soft);font-size:11px;border:1px solid var(--line);padding:1px 6px;border-radius:6px;margin-left:4px}
+.field input,.field select,.field textarea{width:100%;background:var(--night);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:12px;font-size:15px;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--kumokai)}
+.sendbtn{width:100%;background:var(--kumokai);color:#08122b;border:none;font-weight:800;font-size:16px;padding:14px;border-radius:12px;cursor:pointer;margin-top:4px}
+.sendbtn:disabled{opacity:.5}
+.shiftmsg{margin-top:12px;font-size:14px;text-align:center;min-height:20px}
+.shiftmsg.ok{color:var(--lantern)}
+.shiftmsg.err{color:var(--danger)}
+.hint{margin-top:14px;font-size:12px;color:var(--muted);line-height:1.6}
+`;
 
-const SHELL = `<header>
+const SHELL = `  <header>
     <div class="wrap">
       <div class="eyebrow">仁和寺 — 音の出る雲海ライトアップ</div>
-      <h1>運営チェックリスト</h1>
-      <div class="sub">持ち場を選んで、上から順にチェック → 最後に「提出」</div>
+      <h1>運営アプリ</h1>
+      <div class="modeswitch">
+        <button id="mode-checklist" class="modebtn active">チェックリスト</button>
+        <button id="mode-shift" class="modebtn">シフト提出</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="view-checklist">
+    <div class="wrap">
+      <div class="sub" style="margin-top:14px">持ち場を選んで、上から順にチェック → 最後に「提出」</div>
       <div class="namebox">
         <label>担当者</label>
         <input id="name" type="text" placeholder="名前を入力" autocomplete="off">
       </div>
     </div>
-  </header>
+    <nav class="tabs" id="tabs"></nav>
+    <main class="wrap" id="main"></main>
+  </div>
 
-  <nav class="tabs" id="tabs"></nav>
-  <main class="wrap" id="main"></main>
+  <div id="view-shift" style="display:none">
+    <main class="wrap">
+      <div class="sub" style="margin:14px 0">勤務できる日を送ってください。送信内容は運営の管理表にまとまります。</div>
+      <div class="form">
+        <div class="field">
+          <label>お名前 <span class="req">必須</span></label>
+          <input id="sf-name" type="text" placeholder="名前を入力" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>勤務できる日 <span class="req">必須</span></label>
+          <input id="sf-date" type="date">
+        </div>
+        <div class="field">
+          <label>希望の持ち場</label>
+          <select id="sf-station">
+            <option value="どこでも">どこでも</option>
+            <option value="山門BOX">山門BOX</option>
+            <option value="境内">境内</option>
+            <option value="金堂BOX">金堂BOX</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>備考（時間の希望など）</label>
+          <textarea id="sf-note" rows="3" placeholder="例：18時以降なら入れます"></textarea>
+        </div>
+        <button id="sf-send" class="sendbtn">送信する</button>
+        <div id="sf-msg" class="shiftmsg"></div>
+        <div class="hint">1日ずつ送れます。複数日OKなら、日付を変えて何回でも送ってください。</div>
+      </div>
+    </main>
+  </div>
 
-  <div class="footer">
+  <div class="footer" id="footer">
     <div class="inner">
       <div class="meta" id="meta">—</div>
       <button class="submit" id="submit" disabled>提出する</button>
@@ -138,6 +195,23 @@ const PAGE = '<style>' + CSS + '</style>' + SHELL;
 
 export default function Home() {
   useEffect(() => {
+
+  // ===== 画面切り替え =====
+  var _vc = document.getElementById('view-checklist');
+  var _vs = document.getElementById('view-shift');
+  var _ft = document.getElementById('footer');
+  function setMode(m){
+    var cl = (m === 'checklist');
+    _vc.style.display = cl ? '' : 'none';
+    _ft.style.display = cl ? '' : 'none';
+    _vs.style.display = cl ? 'none' : '';
+    document.getElementById('mode-checklist').classList.toggle('active', cl);
+    document.getElementById('mode-shift').classList.toggle('active', !cl);
+    window.scrollTo({top:0});
+  }
+  document.getElementById('mode-checklist').addEventListener('click', function(){ setMode('checklist'); });
+  document.getElementById('mode-shift').addEventListener('click', function(){ setMode('shift'); });
+
 /* ===== チェックリストの中身（ここを書き換えれば項目を編集できます） ===== */
 const DATA = [
   { id:"all", name:"全員準備", blocks:[
@@ -347,6 +421,35 @@ document.getElementById('copyBtn').addEventListener('click',function(){
 });
 
 render();
+
+  // ===== シフト提出 =====
+  var SHIFT_URL = "https://script.google.com/macros/s/AKfycbw2CUEWQJX4uceZ_xab9m6GdqaPS14J-OQobhk8wW80o4jiQVA-mGwKpK3q7BIEdbir/exec";
+  var sfBtn = document.getElementById('sf-send');
+  var sfMsg = document.getElementById('sf-msg');
+  sfBtn.addEventListener('click', async function(){
+    var name = document.getElementById('sf-name').value.trim();
+    var date = document.getElementById('sf-date').value;
+    if(!name || !date){ sfMsg.className='shiftmsg err'; sfMsg.textContent='お名前と勤務できる日を入力してください。'; return; }
+    sfBtn.disabled = true; sfMsg.className='shiftmsg'; sfMsg.textContent='送信中…';
+    var payload = {
+      "名前": name,
+      "勤務できる日": date,
+      "希望の持ち場": document.getElementById('sf-station').value,
+      "備考": document.getElementById('sf-note').value.trim()
+    };
+    try{
+      await fetch(SHIFT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload) });
+      sfMsg.className='shiftmsg ok'; sfMsg.textContent='送信しました。ありがとうございます！';
+      document.getElementById('sf-name').value='';
+      document.getElementById('sf-date').value='';
+      document.getElementById('sf-note').value='';
+    }catch(err){
+      sfMsg.className='shiftmsg err'; sfMsg.textContent='送信に失敗しました。通信環境を確認して、もう一度お試しください。';
+    }finally{
+      sfBtn.disabled = false;
+    }
+  });
+
   }, []);
   return <div dangerouslySetInnerHTML={{ __html: PAGE }} />;
 }
