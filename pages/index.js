@@ -98,22 +98,38 @@ const CSS = `:root{
   .btn.close{background:transparent;color:var(--muted)}
 
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
-/* --- mode switch & shift form --- */
-.modeswitch{display:flex;gap:6px;margin-top:14px;background:var(--surface);padding:4px;border-radius:12px}
-.modebtn{flex:1;background:transparent;border:none;color:var(--muted);font-weight:700;font-size:14px;padding:9px;border-radius:9px;cursor:pointer;transition:.15s}
+/* --- mode switch --- */
+.modeswitch{display:flex;gap:5px;margin-top:14px;background:var(--surface);padding:4px;border-radius:12px}
+.modebtn{flex:1;background:transparent;border:none;color:var(--muted);font-weight:700;font-size:13px;padding:9px 4px;border-radius:9px;cursor:pointer;transition:.15s;white-space:nowrap}
 .modebtn.active{background:var(--kumokai);color:#08122b}
+/* --- shift form --- */
 .form{margin:0 0 36px}
 .field{margin-bottom:16px}
 .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:700}
 .field .req{color:var(--kumokai-soft);font-size:11px;border:1px solid var(--line);padding:1px 6px;border-radius:6px;margin-left:4px}
-.field input,.field select,.field textarea{width:100%;background:var(--night);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:12px;font-size:15px;font-family:inherit}
-.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--kumokai)}
-.sendbtn{width:100%;background:var(--kumokai);color:#08122b;border:none;font-weight:800;font-size:16px;padding:14px;border-radius:12px;cursor:pointer;margin-top:4px}
+.field input,.field textarea{width:100%;background:var(--night);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:12px;font-size:15px;font-family:inherit}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--kumokai)}
+.dayrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.daylabel{flex:0 0 86px;font-size:14px;font-weight:700}
+.dayopts{display:flex;gap:5px;flex:1}
+.dayopt{flex:1;background:var(--night);border:1px solid var(--line);color:var(--muted);font-size:12px;font-weight:700;padding:8px 2px;border-radius:8px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.dayopt[data-v="はいりたい"].sel{background:var(--kumokai);color:#08122b;border-color:var(--kumokai)}
+.dayopt[data-v="できたらはいりたい"].sel{background:var(--lantern);color:#241803;border-color:var(--lantern)}
+.dayopt[data-v="はいれない"].sel{background:var(--surface);color:var(--text);border-color:var(--line)}
+.sendbtn{width:100%;background:var(--kumokai);color:#08122b;border:none;font-weight:800;font-size:16px;padding:14px;border-radius:12px;cursor:pointer;margin-top:18px}
 .sendbtn:disabled{opacity:.5}
 .shiftmsg{margin-top:12px;font-size:14px;text-align:center;min-height:20px}
 .shiftmsg.ok{color:var(--lantern)}
 .shiftmsg.err{color:var(--danger)}
 .hint{margin-top:14px;font-size:12px;color:var(--muted);line-height:1.6}
+/* --- confirmed view --- */
+.cbar{display:flex;justify-content:space-between;align-items:center;margin:14px 0}
+.refresh{background:var(--surface);border:1px solid var(--line);color:var(--text);font-size:13px;font-weight:700;padding:8px 14px;border-radius:9px;cursor:pointer}
+.ctable{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:30px}
+.ctable th{background:var(--surface);color:var(--kumokai-soft);text-align:left;padding:9px;border:1px solid var(--line);font-weight:800}
+.ctable td{padding:9px;border:1px solid var(--line)}
+.empty{color:var(--muted);text-align:center;padding:40px 16px;font-size:14px;line-height:1.7}
+.empty.err{color:var(--danger)}
 `;
 
 const SHELL = `  <header>
@@ -123,6 +139,7 @@ const SHELL = `  <header>
       <div class="modeswitch">
         <button id="mode-checklist" class="modebtn active">チェックリスト</button>
         <button id="mode-shift" class="modebtn">シフト提出</button>
+        <button id="mode-confirmed" class="modebtn">確定シフト</button>
       </div>
     </div>
   </header>
@@ -141,33 +158,118 @@ const SHELL = `  <header>
 
   <div id="view-shift" style="display:none">
     <main class="wrap">
-      <div class="sub" style="margin:14px 0">勤務できる日を送ってください。送信内容は運営の管理表にまとまります。</div>
+      <div class="sub" style="margin:14px 0">7/10〜7/20で、入れる日を選んで送ってください。</div>
       <div class="form">
         <div class="field">
           <label>お名前 <span class="req">必須</span></label>
           <input id="sf-name" type="text" placeholder="名前を入力" autocomplete="off">
         </div>
-        <div class="field">
-          <label>勤務できる日 <span class="req">必須</span></label>
-          <input id="sf-date" type="date">
+        <div class="dayrow" data-date="7/10">
+          <div class="daylabel">7/10（金）</div>
+          <div class="dayopts">
+            <button class="dayopt" data-v="はいりたい">はいりたい</button>
+            <button class="dayopt" data-v="できたらはいりたい">できたら</button>
+            <button class="dayopt sel" data-v="はいれない">はいれない</button>
+          </div>
         </div>
-        <div class="field">
-          <label>希望の持ち場</label>
-          <select id="sf-station">
-            <option value="どこでも">どこでも</option>
-            <option value="山門BOX">山門BOX</option>
-            <option value="境内">境内</option>
-            <option value="金堂BOX">金堂BOX</option>
-          </select>
+        <div class="dayrow" data-date="7/11">
+          <div class="daylabel">7/11（土）</div>
+          <div class="dayopts">
+            <button class="dayopt" data-v="はいりたい">はいりたい</button>
+            <button class="dayopt" data-v="できたらはいりたい">できたら</button>
+            <button class="dayopt sel" data-v="はいれない">はいれない</button>
+          </div>
         </div>
-        <div class="field">
+        <div class="dayrow" data-date="7/12">
+          <div class="daylabel">7/12（日）</div>
+          <div class="dayopts">
+            <button class="dayopt" data-v="はいりたい">はいりたい</button>
+            <button class="dayopt" data-v="できたらはいりたい">できたら</button>
+            <button class="dayopt sel" data-v="はいれない">はいれない</button>
+          </div>
+        </div>
+        <div class="dayrow" data-date="7/13">
+          <div class="daylabel">7/13（月）</div>
+          <div class="dayopts">
+            <button class="dayopt" data-v="はいりたい">はいりたい</button>
+            <button class="dayopt" data-v="できたらはいりたい">できたら</button>
+            <button class="dayopt sel" data-v="はいれない">はいれない</button>
+          </div>
+        </div>
+        <div class="dayrow" data-date="7/14">
+          <div class="daylabel">7/14（火）</div>
+          <div class="dayopts">
+            <button class="dayopt" data-v="はいりたい">はいりたい</button>
+            <button class="dayopt" data-v="できたらはいりたい">できたら</button>
+            <button class="dayopt sel" data-v="はいれない">はいれない</button>
+          </div>
+        </div>
+        <div class="dayrow" data-date="7/15">
+          <div class="daylabel">7/15（水）</div>
+          <div class="dayopts">
+            <button class="dayopt" data-v="はいりたい">はいりたい</button>
+            <button class="dayopt" data-v="できたらはいりたい">できたら</button>
+            <button class="dayopt sel" data-v="はいれない">はいれない</button>
+          </div>
+        </div>
+        <div class="dayrow" data-date="7/16">
+          <div class="daylabel">7/16（木）</div>
+          <div class="dayopts">
+            <button class="dayopt" data-v="はいりたい">はいりたい</button>
+            <button class="dayopt" data-v="できたらはいりたい">できたら</button>
+            <button class="dayopt sel" data-v="はいれない">はいれない</button>
+          </div>
+        </div>
+        <div class="dayrow" data-date="7/17">
+          <div class="daylabel">7/17（金）</div>
+          <div class="dayopts">
+            <button class="dayopt" data-v="はいりたい">はいりたい</button>
+            <button class="dayopt" data-v="できたらはいりたい">できたら</button>
+            <button class="dayopt sel" data-v="はいれない">はいれない</button>
+          </div>
+        </div>
+        <div class="dayrow" data-date="7/18">
+          <div class="daylabel">7/18（土）</div>
+          <div class="dayopts">
+            <button class="dayopt" data-v="はいりたい">はいりたい</button>
+            <button class="dayopt" data-v="できたらはいりたい">できたら</button>
+            <button class="dayopt sel" data-v="はいれない">はいれない</button>
+          </div>
+        </div>
+        <div class="dayrow" data-date="7/19">
+          <div class="daylabel">7/19（日）</div>
+          <div class="dayopts">
+            <button class="dayopt" data-v="はいりたい">はいりたい</button>
+            <button class="dayopt" data-v="できたらはいりたい">できたら</button>
+            <button class="dayopt sel" data-v="はいれない">はいれない</button>
+          </div>
+        </div>
+        <div class="dayrow" data-date="7/20">
+          <div class="daylabel">7/20（月）</div>
+          <div class="dayopts">
+            <button class="dayopt" data-v="はいりたい">はいりたい</button>
+            <button class="dayopt" data-v="できたらはいりたい">できたら</button>
+            <button class="dayopt sel" data-v="はいれない">はいれない</button>
+          </div>
+        </div>
+        <div class="field" style="margin-top:18px">
           <label>備考（時間の希望など）</label>
-          <textarea id="sf-note" rows="3" placeholder="例：18時以降なら入れます"></textarea>
+          <textarea id="sf-note" rows="3" placeholder="例：平日は18時以降なら入れます"></textarea>
         </div>
         <button id="sf-send" class="sendbtn">送信する</button>
         <div id="sf-msg" class="shiftmsg"></div>
-        <div class="hint">1日ずつ送れます。複数日OKなら、日付を変えて何回でも送ってください。</div>
+        <div class="hint">初期状態は全部「はいれない」です。入れる日だけ「はいりたい」か「できたら」に変えてください。あとから送り直すと、最新の内容に上書きされます。</div>
       </div>
+    </main>
+  </div>
+
+  <div id="view-confirmed" style="display:none">
+    <main class="wrap">
+      <div class="cbar">
+        <div class="sub">確定したシフト</div>
+        <button id="cf-refresh" class="refresh">更新</button>
+      </div>
+      <div id="cf-area"><div class="empty">読み込み中…</div></div>
     </main>
   </div>
 
@@ -197,20 +299,21 @@ export default function Home() {
   useEffect(() => {
 
   // ===== 画面切り替え =====
-  var _vc = document.getElementById('view-checklist');
-  var _vs = document.getElementById('view-shift');
-  var _ft = document.getElementById('footer');
+  var SHIFT_URL = "https://script.google.com/macros/s/AKfycbw2CUEWQJX4uceZ_xab9m6GdqaPS14J-OQobhk8wW80o4jiQVA-mGwKpK3q7BIEdbir/exec";
+  var _views = { checklist:'view-checklist', shift:'view-shift', confirmed:'view-confirmed' };
+  var _confirmedLoaded = false;
   function setMode(m){
-    var cl = (m === 'checklist');
-    _vc.style.display = cl ? '' : 'none';
-    _ft.style.display = cl ? '' : 'none';
-    _vs.style.display = cl ? 'none' : '';
-    document.getElementById('mode-checklist').classList.toggle('active', cl);
-    document.getElementById('mode-shift').classList.toggle('active', !cl);
+    for (var k in _views){
+      document.getElementById(_views[k]).style.display = (k===m) ? '' : 'none';
+      document.getElementById('mode-'+k).classList.toggle('active', k===m);
+    }
+    document.getElementById('footer').style.display = (m==='checklist') ? '' : 'none';
     window.scrollTo({top:0});
+    if (m==='confirmed' && !_confirmedLoaded){ loadConfirmed(); }
   }
   document.getElementById('mode-checklist').addEventListener('click', function(){ setMode('checklist'); });
   document.getElementById('mode-shift').addEventListener('click', function(){ setMode('shift'); });
+  document.getElementById('mode-confirmed').addEventListener('click', function(){ setMode('confirmed'); });
 
 /* ===== チェックリストの中身（ここを書き換えれば項目を編集できます） ===== */
 const DATA = [
@@ -423,32 +526,60 @@ document.getElementById('copyBtn').addEventListener('click',function(){
 render();
 
   // ===== シフト提出 =====
-  var SHIFT_URL = "https://script.google.com/macros/s/AKfycbw2CUEWQJX4uceZ_xab9m6GdqaPS14J-OQobhk8wW80o4jiQVA-mGwKpK3q7BIEdbir/exec";
+  var DATES = ["7/10","7/11","7/12","7/13","7/14","7/15","7/16","7/17","7/18","7/19","7/20"];
+  var daySel = {};
+  DATES.forEach(function(d){ daySel[d] = 'はいれない'; });
+  document.querySelectorAll('.dayrow').forEach(function(row){
+    var d = row.getAttribute('data-date');
+    row.querySelectorAll('.dayopt').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        row.querySelectorAll('.dayopt').forEach(function(b){ b.classList.remove('sel'); });
+        btn.classList.add('sel');
+        daySel[d] = btn.getAttribute('data-v');
+      });
+    });
+  });
   var sfBtn = document.getElementById('sf-send');
   var sfMsg = document.getElementById('sf-msg');
   sfBtn.addEventListener('click', async function(){
     var name = document.getElementById('sf-name').value.trim();
-    var date = document.getElementById('sf-date').value;
-    if(!name || !date){ sfMsg.className='shiftmsg err'; sfMsg.textContent='お名前と勤務できる日を入力してください。'; return; }
+    if(!name){ sfMsg.className='shiftmsg err'; sfMsg.textContent='お名前を入力してください。'; return; }
     sfBtn.disabled = true; sfMsg.className='shiftmsg'; sfMsg.textContent='送信中…';
-    var payload = {
-      "名前": name,
-      "勤務できる日": date,
-      "希望の持ち場": document.getElementById('sf-station').value,
-      "備考": document.getElementById('sf-note').value.trim()
-    };
+    var payload = { "名前": name };
+    DATES.forEach(function(d){ payload[d] = daySel[d]; });
+    payload["備考"] = document.getElementById('sf-note').value.trim();
     try{
       await fetch(SHIFT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload) });
       sfMsg.className='shiftmsg ok'; sfMsg.textContent='送信しました。ありがとうございます！';
-      document.getElementById('sf-name').value='';
-      document.getElementById('sf-date').value='';
-      document.getElementById('sf-note').value='';
     }catch(err){
       sfMsg.className='shiftmsg err'; sfMsg.textContent='送信に失敗しました。通信環境を確認して、もう一度お試しください。';
     }finally{
       sfBtn.disabled = false;
     }
   });
+
+  // ===== 確定シフト表示 =====
+  function escH(s){ return String(s).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
+  function loadConfirmed(){
+    var area = document.getElementById('cf-area');
+    area.innerHTML = '<div class="empty">読み込み中…</div>';
+    fetch(SHIFT_URL).then(function(r){ return r.json(); }).then(function(data){
+      var rows = (data && data.confirmed) || [];
+      if(!rows.length){ area.innerHTML = '<div class="empty">まだシフトは確定していません。<br>確定すると、ここに表示されます。</div>'; _confirmedLoaded = true; return; }
+      var html = '<table class="ctable">';
+      rows.forEach(function(r, i){
+        html += '<tr>';
+        r.forEach(function(c){ html += (i===0?'<th>':'<td>') + escH(c) + (i===0?'</th>':'</td>'); });
+        html += '</tr>';
+      });
+      html += '</table>';
+      area.innerHTML = html;
+      _confirmedLoaded = true;
+    }).catch(function(e){
+      area.innerHTML = '<div class="empty err">読み込みに失敗しました。少し待って「更新」を押してください。</div>';
+    });
+  }
+  document.getElementById('cf-refresh').addEventListener('click', function(){ _confirmedLoaded = false; loadConfirmed(); });
 
   }, []);
   return <div dangerouslySetInnerHTML={{ __html: PAGE }} />;
